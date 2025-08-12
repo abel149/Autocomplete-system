@@ -504,25 +504,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // Insert the selected suggestion with a trailing space
     const trailingSpace = text.length > offset ? " " : "";
     const textToInsert = selected.text + trailingSpace;
-    wordRange.insertNode(document.createTextNode(textToInsert));
+    const insertedNode = document.createTextNode(textToInsert);
+    wordRange.insertNode(insertedNode);
 
-    // Create new cursor position (after inserted word + space)
-    const newCursorPos = wordStart + textToInsert.length;
-
-    // Set cursor position
+    // Now set caret **after** the insertedNode
     const newRange = document.createRange();
+    newRange.setStartAfter(insertedNode);
+    newRange.collapse(true);
 
-    // Special handling for end of text node
-    if (newCursorPos >= textNode.length) {
-      // If at end, create new text node if needed
-      if (!textNode.nextSibling) {
-        const nextNode = document.createTextNode("");
-        textNode.parentNode.insertBefore(nextNode, textNode.nextSibling);
-      }
-      newRange.setStart(textNode.nextSibling, 0);
-    } else {
-      newRange.setStart(textNode, newCursorPos);
-    }
+    const selections = window.getSelection();
+    selections.removeAllRanges();
+    selections.addRange(newRange);
 
     newRange.collapse(true);
     selection.removeAllRanges();
@@ -694,6 +686,10 @@ function saveWord(word) {
   freq[lower] = (freq[lower] || 0) + 1;
   saveWordFrequency(freq);
 
+  // ✅ If frequency passes threshold, add to habitTrie immediately
+  if (freq[lower] >= HABIT_THRESHOLD) {
+    habitTrie.insert(lower);
+  }
   // Debug view
   document.getElementById("debug").textContent = JSON.stringify(freq, null, 2);
 }
