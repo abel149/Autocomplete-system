@@ -660,19 +660,32 @@ window.addEventListener(
     }
   },
   true
-); // Key to store word frequencies in localStorage
-const STORAGE_KEY = "wordFrequency";
+);
+const SECRET_KEY = "storageslocal"; // Keep this safe and ideally not hardcoded
 
-// Helper: Get stored frequencies
-function getWordFrequency() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+function encryptData(data) {
+  return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
 }
 
-// Helper: Save frequencies
+function decryptData(ciphertext) {
+  try {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, SECRET_KEY);
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  } catch (e) {
+    return {};
+  }
+}
+// Example save
 function saveWordFrequency(freq) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(freq));
+  const encrypted = encryptData(freq);
+  localStorage.setItem("word_Frequency", encrypted);
 }
 
+// Example load
+function getWordFrequency() {
+  const encrypted = localStorage.getItem("word_Frequency");
+  return encrypted ? decryptData(encrypted) : {};
+}
 // Function: Save one word to frequency map
 function saveWord(word) {
   if (!word.trim()) return; // skip empty
@@ -700,7 +713,7 @@ const habitTrie = new Trie();
 const dictionaryTrie = new Trie();
 
 function loadHabitTrie() {
-  const freq = JSON.parse(localStorage.getItem("wordFrequency")) || {};
+  const freq = getWordFrequency(); // ✅ decrypts and parses
   Object.keys(freq).forEach((word) => {
     if (freq[word] >= HABIT_THRESHOLD) {
       habitTrie.insert(word);
